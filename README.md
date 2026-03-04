@@ -32,6 +32,7 @@ I configured a Private Hosted Zone (vprofile) to allow the application server to
 
 ## Security Implementation
 Security was implemented via a Defense-in-Depth model using Security Group Nesting (referencing SG-IDs rather than CIDR blocks).
+
 1.vprofile-web01-sg: Allows 80/443 from the Internet (0.0.0.0/0).
 
 2.vprofile-app01-sg: Only allows traffic on port 8080 if the source is vprofile-app01-sg.
@@ -42,11 +43,17 @@ Security was implemented via a Defense-in-Depth model using Security Group Nesti
 
 ### Project Structure
 ├── architecture/         # HLD Diagrams & Networking Schema
+
 ├── scripts/              # Bash automation for service provisioning
+
 │   ├── mysql.sh          # DB setup and schema import
+
 │   ├── rmq.sh            # RabbitMQ & Erlang installation
+
 │   ├── tomcat.sh         # App deployment & service config
+
 │   └── nginx.sh          # Reverse proxy setup using Route 53 endpoints
+
 └── README.md             # Project documentation
 
 ### Execution & Deployment
