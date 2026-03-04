@@ -30,49 +30,30 @@ I configured a Private Hosted Zone (vprofile) to allow the application server to
 | **Cache Store** | `mc01.vprofile | 11211 |
 | **App Server** | `app01.vprofile | 8080 |
 
-## 🏗️ System Architecture
-This project implements a secure, scalable 5-tier web application architecture on AWS. The design uses physically separated instances for each tier to enforce isolation and follows the principal of least privilege via Security Groups.
+## Security Implementation
+Security was implemented via a Defense-in-Depth model using Security Group Nesting (referencing SG-IDs rather than CIDR blocks).
+1.vprofile-web01-sg: Allows 80/443 from the Internet (0.0.0.0/0).
 
-All components are deployed within a single **VPC** (Virtual Private Cloud).
+2.vprofile-app01-sg: Only allows traffic on port 8080 if the source is vprofile-app01-sg.
 
----
+3.vpro-backend-sg: Highly restricted; only allows 3306, 5672, and 11211 if the source is vprofile-app01-sg.
 
-### **Component & Infrastructure Stack**
-This table outlines the specific EC2 instance type and Operating System (OS) used for each component of the stack. All instances are powered by **t3.micro** EC2 instances.
+4.vpro-admin-sg: SSH access is restricted to a specific Administrative IP for management.
 
-| Tier | Component | Instance Type | OS | Role |
-| :--- | :--- | :--- | :--- | :--- |
-| **Web / Proxy** | Nginx | t3.micro | Ubuntu 22.04 | Reverse Proxy & SSL Termination |
-| **App Tier** | Apache Tomcat | t3.micro | Amazon Linux 2 | Java Servlet Container |
-| **Message Broker**| RabbitMQ | t3.micro | Amazon Linux 2 | Asynchronous Messaging |
-| **Cache Layer** | Memcached | t3.micro | Amazon Linux 2 | Session & Query Caching |
-| **Database** | MySQL | t3.micro | Amazon Linux 2 | Persistent Data Storage |
+### Project Structure
+├── architecture/         # HLD Diagrams & Networking Schema
+├── scripts/              # Bash automation for service provisioning
+│   ├── mysql.sh          # DB setup and schema import
+│   ├── rmq.sh            # RabbitMQ & Erlang installation
+│   ├── tomcat.sh         # App deployment & service config
+│   └── nginx.sh          # Reverse proxy setup using Route 53 endpoints
+└── README.md             # Project documentation
 
+### Execution & Deployment
+1.Infrastructure: Manually provisioned VPC, Subnets, IGW, and Route Tables.
 
----
+2.DNS: Established a Private Hosted Zone and mapped A-records for all 5 EC2 Private IPs.
 
-### **Internal Service Discovery (Route 53)**
-A key feature of this design is the use of **Route 53 Private Hosted Zones**. The App Tier is configured to connect to backend services using internal DNS records (e.g., `db01.vpro.internal`) rather than private IP addresses. This makes the architecture decoupled; instances can be replaced or updated without modifying application code.
+3.Provisioning: Executed the scripts in /scripts to automate the installation of middleware on raw Linux instances.
 
-| Service | Internal DNS Record | Port |
-| :--- | :--- | :--- |
-| **Database** | `db01.vpro.internal` | 3306 |
-| **Message Broker** | `rmq01.vpro.internal` | 5672 |
-| **Cache Store** | `mc01.vpro.internal` | 11211 |
-| **App Server** | `app01.vpro.internal` | 8080 |
-
-
----
-
-### **VPC Traffic Flow**
-The architecture diagram below visualizes the networking logic and communication paths within the VPC.
-
-1.  Traffic flows from the **Load Balancer (ELB)** to the **Application Server (EC2)**.
-2.  The application uses **Route 53** to find the private IP addresses of backend services.
-3.  The App server then communicates with the **Message Broker (RabbitMQ)** and the **Memcached (MC)** service.
-4.  The Memcached service provides quick data access and communicates directly with the primary **Database (RDS)** for persistent storage.
-
-```markdown
-<p align="center">
-  <img src="your-image-url.png" alt="Cloud Services Architecture (AWS) Diagram" />
-</p>
+4.Validation: Verified end-to-end connectivity using telnet and internal DNS resolution checks.
